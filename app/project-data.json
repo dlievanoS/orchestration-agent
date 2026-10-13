@@ -1,0 +1,44 @@
+{
+  "projects": [
+    {
+      "name": "Mobile Launch Readiness",
+      "owner": "Jordan Lee",
+      "status": "At risk",
+      "recentActivity": "The final device audit is underway; two launch blockers need sign-off by Friday.",
+      "priority": "High",
+      "summary": "Prepare the mobile experience, release operations, and support teams for launch.",
+      "progress": 72,
+      "dueDate": "2026-10-16"
+    },
+    {
+      "name": "Customer Insights Hub",
+      "owner": "Avery Chen",
+      "status": "On track",
+      "recentActivity": "Research synthesis is complete and the first stakeholder review is scheduled.",
+      "priority": "High",
+      "summary": "Bring customer research and product signals into one shared decision hub.",
+      "progress": 64,
+      "dueDate": "2026-10-30"
+    },
+    {
+      "name": "Workflow Automation",
+      "owner": "Sam Rivera",
+      "status": "Planning",
+      "recentActivity": "The team selected the pilot process and is mapping approval paths this week.",
+      "priority": "Medium",
+      "summary": "Reduce manual approval work through a focused automation pilot.",
+      "progress": 28,
+      "dueDate": "2026-11-20"
+    },
+    {
+      "name": "Support Knowledge Refresh",
+      "owner": "Morgan Patel",
+      "status": "Blocked",
+      "recentActivity": "Content migration is waiting on access to the legacy article archive.",
+      "priority": "Medium",
+      "summary": "Refresh support guidance so customers can find current answers quickly.",
+      "progress": 41,
+      "dueDate": "2026-10-23"
+    }
+  ]
+}

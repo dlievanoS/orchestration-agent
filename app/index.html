@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Pulse</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="dashboard">
+      <header class="dashboard__header">
+        <div>
+          <p class="eyebrow">Mona's workspace</p>
+          <h1>Project Pulse</h1>
+          <p class="dashboard__intro">
+            A focused view of the work moving your team forward.
+          </p>
+        </div>
+        <p class="dashboard__date" aria-label="Dashboard update frequency">
+          Updated live from the project register
+        </p>
+      </header>
+
+      <section class="dashboard__overview" aria-labelledby="overview-heading">
+        <div>
+          <p class="eyebrow">Portfolio snapshot</p>
+          <h2 id="overview-heading">What needs attention</h2>
+        </div>
+        <dl class="metrics" id="metrics"></dl>
+      </section>
+
+      <section class="projects-section" aria-labelledby="projects-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Active initiatives</p>
+            <h2 id="projects-heading">Projects in motion</h2>
+          </div>
+          <p id="project-count" class="project-count"></p>
+        </div>
+        <p id="dashboard-status" class="visually-hidden" role="status"></p>
+        <div id="projects" class="projects-grid" aria-busy="true">
+          <p class="loading-message">Loading project pulse…</p>
+        </div>
+      </section>
+    </main>
+
+    <template id="project-card-template">
+      <article class="project-card">
+        <div class="project-card__topline">
+          <span class="project-card__status"></span>
+          <span class="project-card__priority"></span>
+        </div>
+        <h3 class="project-card__name"></h3>
+        <p class="project-card__summary"></p>
+        <div class="project-card__progress">
+          <div class="project-card__progress-heading">
+            <span class="project-card__progress-label">Progress</span>
+            <span class="project-card__progress-value"></span>
+          </div>
+          <progress class="project-card__progress-bar" max="100"></progress>
+        </div>
+        <div class="project-card__activity-group">
+          <p class="project-card__activity-label">Recent activity</p>
+          <p class="project-card__activity"></p>
+        </div>
+        <footer class="project-card__footer">
+          <div>
+            <span class="project-card__owner"></span>
+            <span class="project-card__label">Project owner</span>
+          </div>
+          <p class="project-card__due-date">
+            Due <time class="project-card__due-time"></time>
+          </p>
+        </footer>
+      </article>
+    </template>
+
+    <script>
+      const projectsElement = document.querySelector("#projects");
+      const projectCountElement = document.querySelector("#project-count");
+      const metricsElement = document.querySelector("#metrics");
+      const cardTemplate = document.querySelector("#project-card-template");
+      const dashboardStatusElement = document.querySelector("#dashboard-status");
+
+      const statusClass = (status) =>
+        `status--${status.toLowerCase().replace(/\s+/g, "-")}`;
+
+      const priorityClass = (priority) =>
+        `priority--${priority.toLowerCase().replace(/\s+/g, "-")}`;
+
+      function renderMetrics(projects) {
+        const activeProjects = projects.length;
+        const attentionProjects = projects.filter(
+          ({ status }) => status === "At risk" || status === "Blocked",
+        ).length;
+        const highPriorityProjects = projects.filter(
+          ({ priority }) => priority === "High",
+        ).length;
+
+        const metrics = [
+          ["Active", activeProjects, "initiatives"],
+          ["Attention", attentionProjects, "need a closer look"],
+          ["High priority", highPriorityProjects, "key deliveries"],
+        ];
+
+        metricsElement.replaceChildren(
+          ...metrics.map(([label, value, detail]) => {
+            const metric = document.createElement("div");
+            metric.className = "metric";
+            metric.innerHTML = `<dt>${label}</dt><dd>${value}<span>${detail}</span></dd>`;
+            return metric;
+          }),
+        );
+      }
+
+      function renderProjects(projects) {
+        projectsElement.replaceChildren(
+          ...projects.map((project, index) => {
+            const card = cardTemplate.content.cloneNode(true);
+            const article = card.querySelector(".project-card");
+            const status = card.querySelector(".project-card__status");
+            const priority = card.querySelector(".project-card__priority");
+            const progressLabel = card.querySelector(".project-card__progress-label");
+            const progressValue = card.querySelector(".project-card__progress-value");
+            const progressBar = card.querySelector(".project-card__progress-bar");
+            const dueTime = card.querySelector(".project-card__due-time");
+            const progressLabelId = `project-progress-${index}`;
+
+            article.setAttribute("aria-label", `${project.name} project`);
+            status.textContent = project.status;
+            status.classList.add(statusClass(project.status));
+            priority.textContent = `${project.priority} priority`;
+            priority.classList.add(priorityClass(project.priority));
+            card.querySelector(".project-card__name").textContent = project.name;
+            card.querySelector(".project-card__summary").textContent = project.summary;
+            progressLabel.id = progressLabelId;
+            progressValue.textContent = `${project.progress}%`;
+            progressBar.value = project.progress;
+            progressBar.setAttribute("aria-labelledby", progressLabelId);
+            card.querySelector(".project-card__activity").textContent =
+              project.recentActivity;
+            card.querySelector(".project-card__owner").textContent = project.owner;
+            dueTime.dateTime = project.dueDate;
+            dueTime.textContent = new Intl.DateTimeFormat("en", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              timeZone: "UTC",
+            }).format(new Date(`${project.dueDate}T00:00:00Z`));
+
+            return card;
+          }),
+        );
+      }
+
+      async function loadProjects() {
+        try {
+          const response = await fetch("project-data.json");
+          if (!response.ok) {
+            throw new Error(`Project data could not be loaded (${response.status}).`);
+          }
+
+          const data = await response.json();
+          if (!Array.isArray(data.projects) || data.projects.length === 0) {
+            throw new Error("Project data does not include any projects.");
+          }
+
+          const requiredTextFields = [
+            "name",
+            "owner",
+            "status",
+            "recentActivity",
+            "priority",
+            "summary",
+            "dueDate",
+          ];
+          const hasInvalidProject = data.projects.some((project) => {
+            const hasMissingText = requiredTextFields.some(
+              (field) => typeof project[field] !== "string" || !project[field].trim(),
+            );
+            const hasInvalidProgress =
+              !Number.isInteger(project.progress) ||
+              project.progress < 0 ||
+              project.progress > 100;
+            const hasInvalidDate =
+              !/^\d{4}-\d{2}-\d{2}$/.test(project.dueDate) ||
+              Number.isNaN(Date.parse(`${project.dueDate}T00:00:00Z`)) ||
+              new Date(`${project.dueDate}T00:00:00Z`)
+                .toISOString()
+                .slice(0, 10) !== project.dueDate;
+
+            return hasMissingText || hasInvalidProgress || hasInvalidDate;
+          });
+          if (hasInvalidProject) {
+            throw new Error("Project data is missing required project details.");
+          }
+
+          renderMetrics(data.projects);
+          renderProjects(data.projects);
+          projectCountElement.textContent = `${data.projects.length} active projects`;
+          projectsElement.setAttribute("aria-busy", "false");
+          dashboardStatusElement.textContent =
+            `${data.projects.length} projects loaded.`;
+        } catch (error) {
+          projectsElement.replaceChildren();
+          const message = document.createElement("p");
+          message.className = "error-message";
+          message.setAttribute("role", "alert");
+          message.textContent = `Unable to show the project dashboard. ${error.message}`;
+          projectsElement.append(message);
+          projectsElement.setAttribute("aria-busy", "false");
+          projectCountElement.textContent = "Project data unavailable";
+          dashboardStatusElement.textContent = "Project data could not be loaded.";
+        }
+      }
+
+      loadProjects();
+    </script>
+  </body>
+</html>
